@@ -5,7 +5,7 @@ import pickle
 import face_recognition
 from face_recognition import load_image_file
 from collections import Counter
-
+import cv2
 
 DEFAULT_ENCODINGS_PATH = Path("../output/encodings.pkl")
 BOUNDING_BOX_COLOR = "blue"

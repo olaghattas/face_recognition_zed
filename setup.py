@@ -20,6 +20,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
+            'detect_zed = face_recognition_zed.zed_head_box:main',
         ],
     },
 )
