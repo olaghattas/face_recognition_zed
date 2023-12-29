@@ -16,10 +16,7 @@ from ament_index_python.packages import get_package_share_directory
 import numpy as np
 from collections import Counter
 
-DEFAULT_ENCODINGS_PATH = os.path.join(get_package_share_directory("face_recognition_zed"), "/output/encodings.pkl")
-BOUNDING_BOX_COLOR = "blue"
-TEXT_COLOR = "white"
-
+DEFAULT_ENCODINGS_PATH =  os.getenv('encoding_loc') + "face_recognition_zed/output/encodings.pkl"
 
 # Path("../training").mkdir(exist_ok=True)
 # Path("../output").mkdir(exist_ok=True)
@@ -74,33 +71,13 @@ class ZedImage(Node):
         self.bridge = CvBridge()
         self.cv2_image = None
         self.model = "hog"
-        self.encodings_location = "/home/olagh/smart-home/src/smart-home/external/face_recognition_zed/output/encodings.pkl"
+        self.encodings_location = os.getenv('encoding_loc') + "face_recognition_zed/output/encodings.pkl"
         timer_period = 2  # seconds
         self.timer = self.create_timer(timer_period, self.timer_callback)
         # print("self.encodings_location scsc  ",get_package_share_directory("face_recognition_zed"))
         print("self.encodings_location", self.encodings_location)
         self.tracked_label = None
         self.pose_pub = self.create_publisher(Object, os.getenv('cam_loc') + "_person_pose", 10)
-
-    def _display_face(self, draw, bounding_box, name):
-        # font = ImageFont.load_default()
-
-        top, right, bottom, left = bounding_box
-        draw.rectangle(((left, top), (right, bottom)), outline=BOUNDING_BOX_COLOR)
-
-        text_left, text_top, text_right, text_bottom = draw.textbbox(
-            (left, bottom), name
-        )
-        draw.rectangle(
-            ((text_left, text_top), (text_right, text_bottom)),
-            fill="blue",
-            outline="blue",
-        )
-        draw.text(
-            (text_left, text_top),
-            name,
-            fill="white",
-        )
 
     def recognize_faces(self, image_,
                         model: str = "hog"
