@@ -3,6 +3,7 @@ from rclpy.node import Node
 from sensor_msgs.msg import Image
 from std_msgs.msg import Int64
 from zed_interfaces.msg import ObjectsStamped
+from zed_interfaces.msg import Object
 import cv2
 from cv_bridge import CvBridge
 import os
@@ -79,6 +80,7 @@ class ZedImage(Node):
         # print("self.encodings_location scsc  ",get_package_share_directory("face_recognition_zed"))
         print("self.encodings_location", self.encodings_location)
         self.tracked_label = None
+        self.pose_pub = self.create_publisher(Object, os.getenv('cam_loc') + "_person_pose", 10)
 
     def _display_face(self, draw, bounding_box, name):
         # font = ImageFont.load_default()
@@ -108,10 +110,10 @@ class ZedImage(Node):
             loaded_encodings = pickle.load(f)
 
         # Convert the image from BGR color (which OpenCV uses) to RGB color (which face_recognition uses)
-        print("Before rgb")
+        # print("Before rgb")
         rgb_frame = cv2.cvtColor(image_, cv2.COLOR_BGR2RGB)
-        print("After rgb")
-        # rgb_frame = rgb_frame[:, :, ::-1]
+        # print("After rgb")
+
 
         input_face_locations = face_recognition.face_locations(
             rgb_frame, model=model
@@ -131,19 +133,19 @@ class ZedImage(Node):
                 name = "unknown"
 
             # Removed print(name, bounding_box)
-            top, right, bottom, left = bounding_box
+            # top, right, bottom, left = bounding_box
             # Draw a box around the face
 
-            cv2.rectangle(rgb_frame, (left, top), (right, bottom), (0, 0, 255), 2)
-
-            # Draw a label with a name below the face
-            cv2.rectangle(rgb_frame, (left, bottom - 35), (right, bottom), (0, 0, 255), cv2.FILLED)
-            font = cv2.FONT_HERSHEY_DUPLEX
-            cv2.putText(rgb_frame, name, (left + 6, bottom - 6), font, 1.0, (255, 255, 255), 1)
+        #     cv2.rectangle(rgb_frame, (left, top), (right, bottom), (0, 0, 255), 2)
         #
-        cv2.imshow("Recognized Faces", rgb_frame)
-        cv2.waitKey(500)
-        cv2.destroyAllWindows()
+        #     # Draw a label with a name below the face
+        #     cv2.rectangle(rgb_frame, (left, bottom - 35), (right, bottom), (0, 0, 255), cv2.FILLED)
+        #     font = cv2.FONT_HERSHEY_DUPLEX
+        #     cv2.putText(rgb_frame, name, (left + 6, bottom - 6), font, 1.0, (255, 255, 255), 1)
+        # #
+        # cv2.imshow("Recognized Faces", rgb_frame)
+        # cv2.waitKey(500)
+        # cv2.destroyAllWindows()
         return name
 
     def _recognize_face(self, unknown_encoding, loaded_encodings):
@@ -201,7 +203,7 @@ class ZedImage(Node):
 
     def image_callback(self, image_msg):
         try:
-            print("****************      Image      ************")
+            # print("****************      Image      ************")
             if image_msg:
                 """Callback function that is called whenever a new image message is received."""
                 self.cv2_image = self.bridge.imgmsg_to_cv2(image_msg,
@@ -212,15 +214,18 @@ class ZedImage(Node):
             print(e)
 
     def obj_callback(self, pos_msg):
-        print("&&&&&&&&&&&&&&&&&&&& In Obj Callback &&&&&&&&&&&&&&&&&")
+        # print("&&&&&&&&&&&&&&&&&&&& In Obj Callback &&&&&&&&&&&&&&&&&")
         self.objs = pos_msg.objects
 
     def timer_callback(self):
         print("In Obj Callback")
         try:
             if self.objs:
-                if self.tracked_label and self.is_tracked(self.objs):
-                    print("haliloyayyay")
+                if self.tracked_label:
+                    tracked_object = self.get_tracked_object(self.objs)
+
+                    if tracked_object is not None:
+                        self.pose_pub.publish(tracked_object)
                     return
 
                 for obj in self.objs:
@@ -230,11 +235,11 @@ class ZedImage(Node):
 
                     if self.cv2_image is not None:
                         head_region = self.extract_head_bounding_box(self.cv2_image, box_coordinates)
-                        print('head_region.shape', head_region.shape)
+                        # print('head_region.shape', head_region.shape)
                         name = self.recognize_faces(head_region, model=self.model)
                         print(name, "name2")
 
-                        if name == "unkown":
+                        if name == "sajay":
                             print("Label ID: ", obj.label_id)
                             self.tracked_label = obj.label_id
 
@@ -242,13 +247,17 @@ class ZedImage(Node):
             print("!!!! Error in obj_callback !!!")
             print(e)
 
+    def get_tracked_object(self, objects):
+        # tracked = any(d.label_id == self.tracked_label for d in objects)
+        tracked_obj = next((d for d in objects if d.label_id == self.tracked_label), None)
+        is_tracked = tracked_obj is not None
 
-    def is_tracked(self, objects):
-        tracked = any(d.label_id == self.tracked_label for d in objects)
-        print(tracked, "djdsnjsadncldsfjkcdbfltrancked")
-        if not tracked:
+        if not is_tracked:
             self.tracked_label = None
-        return tracked
+        else:
+            print("****** Is Tracked: ", is_tracked, " ******")
+
+        return tracked_obj
 
 
 def main(args=None):
