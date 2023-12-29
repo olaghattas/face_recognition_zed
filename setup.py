@@ -1,5 +1,6 @@
 from setuptools import find_packages, setup
-
+import os
+import glob
 package_name = 'face_recognition_zed'
 
 setup(
@@ -10,6 +11,9 @@ setup(
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
+        # (os.path.join('share', package_name, 'output'), glob('output/*')),
+        # (os.path.join('share', package_name, 'training'), glob('training/*')),
+        # (os.path.join('share', package_name, 'output'), glob('output/*')),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
