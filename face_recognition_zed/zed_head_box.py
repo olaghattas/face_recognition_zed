@@ -109,10 +109,10 @@ class ZedImage(Node):
             if not name:
                 name = "unknown"
 
-            # Removed print(name, bounding_box)
-            # top, right, bottom, left = bounding_box
-            # Draw a box around the face
-
+        #     # Removed print(name, bounding_box)
+        #     top, right, bottom, left = bounding_box
+        #     # Draw a box around the face
+        #
         #     cv2.rectangle(rgb_frame, (left, top), (right, bottom), (0, 0, 255), 2)
         #
         #     # Draw a label with a name below the face
@@ -204,7 +204,7 @@ class ZedImage(Node):
                     if tracked_object is not None:
                         self.pose_pub.publish(tracked_object)
                     return
-
+                exists = False
                 for obj in self.objs:
                     key_pts = obj.bounding_box_2d.corners
                     # Extracting x, y coordinates for each Keypoint2Df
@@ -217,8 +217,13 @@ class ZedImage(Node):
                         print(name, "name2")
 
                         if name == "sajay":
+                            exists = True
                             print("Label ID: ", obj.label_id)
                             self.tracked_label = obj.label_id
+                no_object = Object()
+                if not exists:
+                    self.pose_pub.publish(no_object)
+
 
         except Exception as e:
             print("!!!! Error in obj_callback !!!")
