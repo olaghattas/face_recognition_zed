@@ -66,8 +66,6 @@ class ZedImage(Node):
             self.image_callback,
             10, callback_group=ReentrantCallbackGroup())
 
-        # Create a publisher for the image count
-        self.publisher = self.create_publisher(Int64, 'image_count', 10)
         self.bridge = CvBridge()
         self.cv2_image = None
         self.model = "hog"
@@ -216,7 +214,7 @@ class ZedImage(Node):
                         name = self.recognize_faces(head_region, model=self.model)
                         print(name, "name2")
 
-                        if name == "sajay":
+                        if name == "ola":
                             exists = True
                             print("Label ID: ", obj.label_id)
                             self.tracked_label = obj.label_id

@@ -112,7 +112,7 @@ def validate(model: str = "hog"):
 
 
 # Removed recognize_faces("unknown.jpg")
-validate()
+# validate()
 
 # recognize_faces("../validation/unknown.png")
-# encode_known_faces()
+encode_known_faces()
