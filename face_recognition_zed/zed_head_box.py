@@ -214,7 +214,7 @@ class ZedImage(Node):
                         name = self.recognize_faces(head_region, model=self.model)
                         print(name, "name2")
 
-                        if name == "ola":
+                        if name == "sajay":
                             exists = True
                             print("Label ID: ", obj.label_id)
                             self.tracked_label = obj.label_id
