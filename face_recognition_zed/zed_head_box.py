@@ -3,7 +3,8 @@ from rclpy.node import Node
 from sensor_msgs.msg import Image
 from std_msgs.msg import Int64
 from zed_interfaces.msg import ObjectsStamped
-from zed_interfaces.msg import Object
+from zed_interfaces.msg import BoundingBox3D
+from particle_filter_msgs.msg import PoseMsg
 import cv2
 from cv_bridge import CvBridge
 import os
@@ -11,12 +12,14 @@ from pathlib import Path
 from rclpy.callback_groups import ReentrantCallbackGroup
 import face_recognition
 import pickle
+from std_msgs.msg import Float32MultiArray
 from ament_index_python.packages import get_package_share_directory
 
 import numpy as np
 from collections import Counter
 
-DEFAULT_ENCODINGS_PATH =  os.getenv('encoding_loc') + "face_recognition_zed/output/encodings.pkl"
+DEFAULT_ENCODINGS_PATH = os.getenv('encoding_loc') + "face_recognition_zed/output/encodings_.pkl"
+
 
 # Path("../training").mkdir(exist_ok=True)
 # Path("../output").mkdir(exist_ok=True)
@@ -69,13 +72,13 @@ class ZedImage(Node):
         self.bridge = CvBridge()
         self.cv2_image = None
         self.model = "hog"
-        self.encodings_location = os.getenv('encoding_loc') + "face_recognition_zed/output/encodings.pkl"
+        self.encodings_location = os.getenv('encoding_loc') + "face_recognition_zed/output/encodings_.pkl"
         timer_period = 2  # seconds
         self.timer = self.create_timer(timer_period, self.timer_callback)
         # print("self.encodings_location scsc  ",get_package_share_directory("face_recognition_zed"))
         print("self.encodings_location", self.encodings_location)
         self.tracked_label = None
-        self.pose_pub = self.create_publisher(Object, os.getenv('cam_loc') + "_person_pose", 10)
+        self.pose_pub = self.create_publisher(PoseMsg, os.getenv('cam_loc') + "_person_pose", 10)
 
     def recognize_faces(self, image_,
                         model: str = "hog"
@@ -88,7 +91,6 @@ class ZedImage(Node):
         # print("Before rgb")
         rgb_frame = cv2.cvtColor(image_, cv2.COLOR_BGR2RGB)
         # print("After rgb")
-
 
         input_face_locations = face_recognition.face_locations(
             rgb_frame, model=model
@@ -193,15 +195,25 @@ class ZedImage(Node):
         self.objs = pos_msg.objects
 
     def timer_callback(self):
-        print("In Obj Callback")
+        print("Timer Callback")
         try:
             if self.objs:
                 if self.tracked_label:
                     tracked_object = self.get_tracked_object(self.objs)
-
+                    # print(tracked_object)
                     if tracked_object is not None:
-                        self.pose_pub.publish(tracked_object)
+                        tracked_pose = PoseMsg()
+                        tracked_pose.label = "sajay"
+                        tracked_pose.bounding_box = tracked_object.bounding_box_3d
+                        # print("tracked_pose.bounding_box",tracked_pose.bounding_box)
+                        print("tracked_object.dimensions_3d", tracked_object.dimensions_3d)
+
+                        tracked_pose.dimensions_3d = Float32MultiArray(data=[tracked_object.dimensions_3d[0], tracked_object.dimensions_3d[1],
+                                                      tracked_object.dimensions_3d[2]])
+                        print("$$$$$$$$$$$$$$$$$$$$$$$$$$$$tracked_pose.dimensions_3d", tracked_pose.dimensions_3d)
+                        self.pose_pub.publish(tracked_pose)
                     return
+
                 exists = False
                 for obj in self.objs:
                     key_pts = obj.bounding_box_2d.corners
@@ -218,10 +230,12 @@ class ZedImage(Node):
                             exists = True
                             print("Label ID: ", obj.label_id)
                             self.tracked_label = obj.label_id
-                no_object = Object()
                 if not exists:
-                    self.pose_pub.publish(no_object)
-
+                    tracked_pose = PoseMsg()
+                    tracked_pose.label = ""
+                    tracked_pose.bounding_box = BoundingBox3D()
+                    tracked_pose.dimensions_3d = Float32MultiArray(data=[0.0, 0.0, 0.0])
+                    self.pose_pub.publish(tracked_pose)
 
         except Exception as e:
             print("!!!! Error in obj_callback !!!")
