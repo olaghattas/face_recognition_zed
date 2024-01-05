@@ -18,7 +18,7 @@ from ament_index_python.packages import get_package_share_directory
 import numpy as np
 from collections import Counter
 
-DEFAULT_ENCODINGS_PATH = os.getenv('encoding_loc') + "face_recognition_zed/output/encodings_.pkl"
+DEFAULT_ENCODINGS_PATH = os.getenv('encoding_loc') + "face_recognition_zed/output/encodings.pkl"
 
 
 # Path("../training").mkdir(exist_ok=True)
@@ -72,13 +72,14 @@ class ZedImage(Node):
         self.bridge = CvBridge()
         self.cv2_image = None
         self.model = "hog"
-        self.encodings_location = os.getenv('encoding_loc') + "face_recognition_zed/output/encodings_.pkl"
+        self.encodings_location = os.getenv('encoding_loc') + "face_recognition_zed/output/encodings.pkl"
         timer_period = 2  # seconds
         self.timer = self.create_timer(timer_period, self.timer_callback)
         # print("self.encodings_location scsc  ",get_package_share_directory("face_recognition_zed"))
         print("self.encodings_location", self.encodings_location)
         self.tracked_label = None
         self.pose_pub = self.create_publisher(PoseMsg, os.getenv('cam_loc') + "_person_pose", 10)
+        self.objs = None
 
     def recognize_faces(self, image_,
                         model: str = "hog"
@@ -208,8 +209,9 @@ class ZedImage(Node):
                         # print("tracked_pose.bounding_box",tracked_pose.bounding_box)
                         print("tracked_object.dimensions_3d", tracked_object.dimensions_3d)
 
-                        tracked_pose.dimensions_3d = Float32MultiArray(data=[tracked_object.dimensions_3d[0], tracked_object.dimensions_3d[1],
-                                                      tracked_object.dimensions_3d[2]])
+                        tracked_pose.dimensions_3d = Float32MultiArray(
+                            data=[tracked_object.dimensions_3d[0], tracked_object.dimensions_3d[1],
+                                  tracked_object.dimensions_3d[2]])
                         print("$$$$$$$$$$$$$$$$$$$$$$$$$$$$tracked_pose.dimensions_3d", tracked_pose.dimensions_3d)
                         self.pose_pub.publish(tracked_pose)
                     return
@@ -236,6 +238,13 @@ class ZedImage(Node):
                     tracked_pose.bounding_box = BoundingBox3D()
                     tracked_pose.dimensions_3d = Float32MultiArray(data=[0.0, 0.0, 0.0])
                     self.pose_pub.publish(tracked_pose)
+
+            else:
+                tracked_pose = PoseMsg()
+                tracked_pose.label = ""
+                tracked_pose.bounding_box = BoundingBox3D()
+                tracked_pose.dimensions_3d = Float32MultiArray(data=[0.0, 0.0, 0.0])
+                self.pose_pub.publish(tracked_pose)
 
         except Exception as e:
             print("!!!! Error in obj_callback !!!")
